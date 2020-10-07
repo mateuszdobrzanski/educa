@@ -56,8 +56,47 @@ class Content(models.Model):
                                on_delete=models.CASCADE)
     # show ContentType in model
     content_type = models.ForeignKey(ContentType,
+                                     limit_choices_to={'model__in': ('text',
+                                                                     'video',
+                                                                     'image',
+                                                                     'file')},
                                      on_delete=models.CASCADE)
     # handle bound model's PK
     object_id = models.PositiveIntegerField()
     # get bound object using object_id and content_type
-    item = GenericForeignKey('content_type', object_id)
+    item = GenericForeignKey('content_type', 'object_id')
+
+
+# abstract model for all types to handle data
+class ItemBase(models.Model):
+    owner = models.ForeignKey(User,
+                              # we reserved name in db for the class which we will build as extend ItemBase
+                              related_name='%(class)s_related',
+                              on_delete=models.CASCADE)
+    title = models.CharField(max_length=250)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        # this mean the ItemBase class is abstract
+        abstract = True
+
+    def __str__(self):
+        return self.title
+
+
+# bellow we use abstract class ItemBase to build another classes
+class Text(ItemBase):
+    content = models.TextField()
+
+
+class File(ItemBase):
+    file = models.FileField(upload_to='files')
+
+
+class Image(ItemBase):
+    image = models.ImageField(upload_to='images')
+
+
+class Video(ItemBase):
+    url = models.URLField()
