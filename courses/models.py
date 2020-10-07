@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
 
 
 # General category of course
@@ -44,3 +46,18 @@ class Module(models.Model):
 
     def __str__(self):
         return self.title
+
+
+# this class/model can handle different types for each module
+# also this class have generic relationship for bind objects from different types and models
+class Content(models.Model):
+    module = models.ForeignKey(Module,
+                               related_name="contents",
+                               on_delete=models.CASCADE)
+    # show ContentType in model
+    content_type = models.ForeignKey(ContentType,
+                                     on_delete=models.CASCADE)
+    # handle bound model's PK
+    object_id = models.PositiveIntegerField()
+    # get bound object using object_id and content_type
+    item = GenericForeignKey('content_type', object_id)
