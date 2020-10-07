@@ -32,8 +32,8 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     # import projects apps
-    'courses'
-    
+    'courses',
+
     
     # default django apps
     'django.contrib.admin',
