@@ -1,8 +1,11 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
+from django.views.generic.base import TemplateResponseMixin, View
 from django.views.generic.list import ListView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from .models import Course
+from .forms import ModuleFormSet
 
 
 # use Mixins to add additional functions for classes using views
@@ -71,3 +74,37 @@ class CourseDeleteView(PermissionRequiredMixin,
     # manage_course_list is connected with ManageCourseListView (?)
     success_url = reverse_lazy('manage_course_list')
     permission_required = 'courses.delete_course'
+
+
+# this view handles the collection of forms for added, update or delete modules for current course
+# TemplateResponseMixin generate forms and send back HTTP request
+class CourseModuleUpdateView(TemplateResponseMixin, View):
+    template_name = 'courses/manage/module/formset.html'
+    course = None
+
+    # create set of forms
+    def get_formset(self, data=None):
+        return ModuleFormSet(instance=self.course, data=data)
+
+    # get HTTP request and handle the type of request (depends it is GET or POST)
+    def dispatch(self, request, pk):
+        self.course = get_object_or_404(Course,
+                                        id=pk,
+                                        owner=request.user)
+        return super(CourseModuleUpdateView, self).dispatch(request, pk)
+
+    # for GET request, we build empty element ModuleFormSet and generate in form with current Course object
+    # by method render_to_response from TemplateResponseMixin
+    def get(self, request, *args, **kwargs):
+        formset = self.get_formset()
+        return self.render_to_response({'course': self.course,
+                                        'formset': formset})
+
+    # for POST request, at first is built ModuleFormSet element, later the method is_valid() is executed
+    def post(self, request, *args, **kwargs):
+        formset = self.get_formset(data=request.POST)
+        if formset.is_valid():
+            formset.save()
+            return redirect('manage_course_list')
+        return self.render_to_response({'course': self.course,
+                                        'formset': formset})
