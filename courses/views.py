@@ -9,6 +9,7 @@ from .forms import ModuleFormSet
 from django.forms.models import modelform_factory
 from django.apps import apps
 from .models import Module, Content
+from braces.views import CsrfExemptMixin, JSONRequestResponseMixin
 
 
 # use Mixins to add additional functions for classes using views
@@ -197,3 +198,26 @@ class ModuleContentListView(TemplateResponseMixin, View):
                                    course__owner=request.user)
 
         return self.render_to_response({'module': module})
+
+
+# get and change module position in list (using JSON file)
+class ModuleOrderView(CsrfExemptMixin,
+                      JSONRequestResponseMixin,
+                      View):
+    def post(self, request):
+        for id, order in self.request_json.items():
+            Module.objects.filter(id=id,
+                                  course__owner=request.user).update(order=order)
+        return self.render_json_response({'saved': 'OK'})
+
+
+# get and change content position in list (using JSON file)
+class ContentOrderView(CsrfExemptMixin,
+                       JSONRequestResponseMixin,
+                       View):
+    def post(self, request):
+        for id, order in self.request_json.items():
+            Content.objects.filter(id=id,
+                                   module__course__owner=request.user) \
+                       .update(order=order)
+        return self.render_json_response({'saved': 'OK'})
